@@ -59,7 +59,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("Pause All", callback_data="pause_all"), InlineKeyboardButton("Resume All", callback_data="resume_all")],
         [InlineKeyboardButton("/settings", callback_data="settings")]
     ]
-    await update.message.reply_text("🎛 Menu principal :", reply_markup=InlineKeyboardMarkup(keyboard))
+    if update.message:
+        await update.message.reply_text(
+            "🎛 Menu principal :", reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+    elif update.callback_query:
+        await update.callback_query.edit_message_text(
+            "🎛 Menu principal :", reply_markup=InlineKeyboardMarkup(keyboard)
+        )
 
 async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [

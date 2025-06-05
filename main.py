@@ -227,3 +227,7 @@ async def on_startup():
     await telegram_app.initialize()
     await telegram_app.start()
     asyncio.create_task(telegram_app.updater.start_polling())
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000)

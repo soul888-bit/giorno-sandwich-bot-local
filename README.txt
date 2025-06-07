@@ -4,7 +4,7 @@
 
 1. Assure-toi d'avoir Python installé (version 3.10+).
 2. Ouvre un terminal dans ce dossier.
-3. Crée un fichier `.env` en copiant le contenu de `.env.example` et en renseignant tes valeurs.
+3. Crée un fichier `.env` en copiant le contenu de `.env.example` et en renseignant tes valeurs. Ne le commite jamais : ce fichier doit rester local pour garder tes secrets.
 4. Installe les dépendances :
 
     pip install -r requirements.txt

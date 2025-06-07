@@ -40,6 +40,20 @@ user_settings = {
 }
 SELECTING_SETTING = 0
 
+# Vérifie si la commande vient de l'utilisateur autorisé
+def restricted(func):
+    async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
+        chat_id = str(update.effective_chat.id) if update.effective_chat else ""
+        user_id = str(update.effective_user.id) if update.effective_user else ""
+        if TELEGRAM_CHAT_ID and chat_id != TELEGRAM_CHAT_ID and user_id != TELEGRAM_CHAT_ID:
+            if update.message:
+                await update.message.reply_text("⛔ Utilisateur non autorisé.")
+            elif update.callback_query:
+                await update.callback_query.answer("Utilisateur non autorisé", show_alert=True)
+            return
+        return await func(update, context, *args, **kwargs)
+    return wrapper
+
 # Telegram alert
 async def send_alert(message: str):
     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=ssl_context)) as session:
@@ -52,6 +66,7 @@ async def send_alert(message: str):
         await session.post(url, json=payload)
 
 # Fonctions Telegram Bot
+@restricted
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         *[[InlineKeyboardButton(f"{token} : {'ON' if info['active'] else 'OFF'}", callback_data=f"toggle_{token}")]
@@ -68,6 +83,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "🎛 Menu principal :", reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
+@restricted
 async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton(f"Slippage max : {user_settings['slippage']}%", callback_data="slippage")],
@@ -82,6 +98,7 @@ async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Réglages :", reply_markup=InlineKeyboardMarkup(keyboard))
     return SELECTING_SETTING
 
+@restricted
 async def setting_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -96,6 +113,7 @@ async def setting_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(messages[query.data])
     return SELECTING_SETTING
 
+@restricted
 async def set_value(update: Update, context: ContextTypes.DEFAULT_TYPE):
     key = context.user_data.get('setting_to_change')
     value = update.message.text
@@ -106,6 +124,7 @@ async def set_value(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Entrée invalide.")
     return ConversationHandler.END
 
+@restricted
 async def add_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(context.args) != 1:
         await update.message.reply_text("Usage : /add <token_address>")
@@ -114,6 +133,7 @@ async def add_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
     watched_tokens[token] = {"active": True}
     await update.message.reply_text(f"✅ Token ajouté : {token}")
 
+@restricted
 async def delete_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(context.args) != 1:
         await update.message.reply_text("Usage : /delete <token_address>")
@@ -125,10 +145,12 @@ async def delete_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("❌ Token non trouvé.")
 
+@restricted
 async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
     watched_tokens.clear()
     await update.message.reply_text("🔁 Surveillance réinitialisée.")
 
+@restricted
 async def toggle_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
     token = update.callback_query.data.replace("toggle_", "")
     if token in watched_tokens:
@@ -136,18 +158,21 @@ async def toggle_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.callback_query.answer(f"{token} {'activé' if watched_tokens[token]['active'] else 'désactivé'}")
     await start(update, context)
 
+@restricted
 async def pause_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for token in watched_tokens:
         watched_tokens[token]["active"] = False
     await update.callback_query.answer("⏸ Tous les tokens en pause")
     await start(update, context)
 
+@restricted
 async def resume_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for token in watched_tokens:
         watched_tokens[token]["active"] = True
     await update.callback_query.answer("▶️ Tous les tokens réactivés")
     await start(update, context)
 
+@restricted
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "/start – Menu principal\n"
